@@ -1,27 +1,26 @@
 clear
-set seed 12345        // For reproducibility
-set obs 1000          // Number of observations (individuals in sample)
+set seed 12345
+set obs 1000
 
-* 1. Define target parameters
-local target_mean = 5
+* 1. Define parameters (mean of lny = ln(5))
+local mu = ln(5)
 local sigma = 0.65
-local mu = ln(`target_mean') - (`sigma'^2 / 2)
 
-* 2. Generate the variable y
+* 2. Generate variables
 gen y = exp(`mu' + `sigma' * rnormal())
 gen lny = ln(y)
 
-* 3. Verify the mean (should be approximately 5)
+* 3. Summarize distribution moments
 summarize y lny
 
 * 4. Create the plot
 * Note: We limit the range to 25 because a mean-5 distribution 
 * has almost no density beyond that point.
 
-histogram y, note(Distribution moments: {&mu}{sub:y} = 5.09;  {&sigma}{sub:ln(y)}=0.66)
+histogram y, note(Distribution moments: {&mu}{sub:y} = 6.3;  {&sigma}{sub:y}=4.7. Note: ln({&mu}{sub:y}) {&ne} {&mu}{sub:ln(y)})
 
 di ln(5) 			/* recall mean of y is approx 5 */
-histogram lny, xtitle("ln(y)") note(Note: The mean of y was approx 5. ln(5)=1.6)
+histogram lny, xtitle("ln(y)") note(Distribution moments: {&mu}{sub:ln(y)} = 1.6 = ln(5);  {&sigma}{sub:ln(y)}=0.66)
 histogram lny, normal normopts(lwidth(medthick) lcolor(black)) xtitle("ln(y)")
 
 *show log of poverty line z=2 (approx 0.69)
@@ -29,21 +28,12 @@ local povertyline = ln(2)
 
 histogram lny, normal normopts(lwidth(medthick) lcolor(black)) addplot(pci 0 `povertyline' 0.5 `povertyline', lcolor(red) lwidth(medthick)) legend(off) xtitle("ln(y)")
 
+
 * 5. Map to cdf
 
-* a. Generate the cumulative probability variable
-cumul lny, gen(lny_cdf)
-
-* b. Sort the data by lny (essential for the line to draw correctly)
-sort lny
-
-* c. Define the vertical line position
 local povertyline = ln(2)
 
-* d. Plot the CDF with the red vertical line
-twoway (line lny_cdf lny, lcolor(navy) lwidth(medthick)), ///
+twoway (function y = normal((x - (ln(5) - 0.65^2/2))/0.65), range(-1 4) lcolor(navy)), ///
     xline(`povertyline', lcolor(red) lpattern(dash) lwidth(medthick)) ///
-    title("Empirical CDF of ln(y)") ///
-    xtitle("ln(y)") ///
-    ytitle("Cumulative Probability") ///
-    ylabel(0(0.2)1, grid) xlabel(, grid)
+    title("CDF of ln(y), standardized") xtitle("ln(y)") ytitle("Cumulative Probability"), ///
+    (scatteri 0.139 0.693, mcolor(red) legend(off))
