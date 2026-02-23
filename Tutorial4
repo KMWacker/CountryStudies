@@ -1,0 +1,22 @@
+wbopendata, indicator(SI.POV.GINI; NY.GDP.PCAP.PP.KD) clear long
+keep if year <= 2025 & year >= 2022
+rename si_pov_gini gini
+rename ny_gdp_pcap_pp_kd gdp_pc
+
+collapse (mean) gini (mean) gdp_pc (first) countryname, by(countrycode)
+gen ln_gdp_pc = ln(gdp_pc)
+
+gen peer_group = 0
+replace peer_group = 1 if countrycode=="CHE" | countrycode=="LUX" | countrycode=="IRL" | countrycode=="NOR"
+
+twoway (scatter gini ln_gdp_pc, mlab(countrycode) mcol(gs5) mlabcol(gs9) ytitle("Gini index") xtitle("GDP p.c. (in PPP and natural logs)") legend(off) note("Data source: WDI, avg. since 2022; Graph: KMW")) (scatter gini ln_gdp_pc if countrycode=="USA", mlab(countrycode) mlabcol(red)) (lfit gini ln_gdp_pc, lcol(blue)) (scatter gini ln_gdp_pc if peer_group==1, mlab(countrycode) mcol(green) mlabcol(green))
+
+regress gini ln_gdp_pc, rob
+predict pred_gini
+
+sum pred_gini gini if countrycode=="USA"
+di 41.75-32.8
+
+sum ln_gdp_pc if countrycode=="USA"
+sum ln_gdp_pc if peer_group==1
+di 11.55 - 11.21
